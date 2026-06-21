@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 
 import { calculate } from "@/lib/emissions/calculate";
@@ -17,9 +18,37 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Icon } from "@/components/ui/Icon";
 import { FootprintHero } from "@/components/dashboard/FootprintHero";
 import { LivingTree } from "@/components/dashboard/LivingTree";
-import { BreakdownDonut } from "@/components/dashboard/BreakdownDonut";
-import { TrendLine } from "@/components/dashboard/TrendLine";
 import { TargetCard } from "@/components/dashboard/TargetCard";
+
+// recharts is heavy (~100 KB gz). Keep it out of the dashboard's initial bundle:
+// both charts are client-only (the page is gated on hydration anyway) and load in
+// their own chunks behind size-matched skeletons, so there's no layout shift.
+const BreakdownDonut = dynamic(
+  () => import("@/components/dashboard/BreakdownDonut").then((m) => m.BreakdownDonut),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        <div className="mx-auto h-44 w-44 shrink-0">
+          <div className="skeleton h-full w-full rounded-full" />
+        </div>
+        <ul className="flex-1 space-y-2">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <li key={i} className="skeleton h-8 rounded-lg" />
+          ))}
+        </ul>
+      </div>
+    ),
+  },
+);
+
+const TrendLine = dynamic(
+  () => import("@/components/dashboard/TrendLine").then((m) => m.TrendLine),
+  {
+    ssr: false,
+    loading: () => <div className="skeleton h-48 w-full rounded-2xl" />,
+  },
+);
 
 const container = {
   hidden: {},
